@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BackpackBattles スラバート計算ツール</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .cell { user-select: none; -webkit-user-select: none; }
+      .dragging { opacity: 0.5; }
+      .drag-over { background-color: #bfdbfe !important; }
+    </style>
+  </head>
+  <body>
+    <div class="max-w-7xl mx-auto p-6 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+      <!-- Header -->
+      <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h1 class="text-3xl font-bold text-slate-800 mb-2">
+          BackpackBattles スラバート計算ツール
+        </h1>
+        <p class="text-slate-600 text-sm">
+          バックパックにアイテムをドラッグ&ドロップして発動頻度を計算
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Palette Panel -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <h2 class="text-xl font-bold text-slate-800 mb-4">パレット</h2>
+          <div id="palette" class="space-y-3">
+            <!-- Palette items will be here -->
+          </div>
+
+          <div class="mt-6 p-4 bg-slate-50 rounded text-sm text-slate-600">
+            <p class="font-medium mb-2">操作方法:</p>
+            <ul class="space-y-1 text-xs">
+              <li>• パレットからドラッグ&ドロップで配置</li>
+              <li>• カバン上でD&Dで移動</li>
+              <li>• Ctrl+D&Dで複製</li>
+              <li>• ダブルクリックで編集</li>
+              <li>• スラバート: Shift+ダブルクリックで回転</li>
+              <li>• 右クリックで削除</li>
+            </ul>
+          </div>
+
+          <button id="calculateBtn" class="w-full mt-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-bold hover:from-blue-700 hover:to-purple-700 flex items-center justify-center gap-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="2" width="16" height="20" rx="2"/>
+              <line x1="8" y1="6" x2="16" y2="6"/>
+              <line x1="16" y1="14" x2="16" y2="18"/>
+              <line x1="8" y1="14" x2="8" y2="18"/>
+              <line x1="12" y1="14" x2="12" y2="18"/>
+              <line x1="8" y1="10" x2="16" y2="10"/>
+            </svg>
+            計算実行
+          </button>
+        </div>
+
+        <!-- Backpack Panel -->
+        <div class="lg:col-span-2 bg-white rounded-lg shadow-lg p-6">
+          <h2 class="text-xl font-bold text-slate-800 mb-4">バックパック (7x9)</h2>
+          <div class="inline-block border-4 border-slate-700 rounded-lg p-2 bg-slate-200">
+            <div id="backpack" class="grid gap-1" style="grid-template-columns: repeat(9, 1fr);">
+              <!-- 7x9 = 63 cells will be here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Equations Panel -->
+      <div id="equations" class="mt-6 bg-white rounded-lg shadow-lg p-6 hidden">
+        <h2 class="text-xl font-bold text-slate-800 mb-4">連立方程式</h2>
+        <div class="bg-slate-50 p-4 rounded-lg overflow-x-auto">
+          <pre id="equationsContent" class="text-sm font-mono text-slate-700"></pre>
+        </div>
+      </div>
+
+      <!-- Results Panel -->
+      <div id="resultsContainer" class="mt-6 space-y-4">
+        <!-- 計算結果がここに追加されていく -->
+      </div>
+      <!-- <div id="results" class="mt-6 bg-white rounded-lg shadow-lg p-6 hidden"> -->
+        <!--   <h2 class="text-xl font-bold text-slate-800 mb-4">計算結果</h2> -->
+
+        <!--   <\!-- バックパック配置のミニチュア -\-> -->
+          <!--   <div class="mb-6 p-4 bg-slate-50 rounded-lg"> -->
+            <!--     <h3 class="text-sm font-bold text-slate-700 mb-2">配置</h3> -->
+            <!--     <div class="inline-block border-2 border-slate-700 rounded p-1 bg-slate-200"> -->
+              <!--       <div id="miniBackpack" class="grid gap-0.5" style="grid-template-columns: repeat(9, 1fr);"> -->
+                <!--         <\!-- ミニチュアセルが入る -\-> -->
+                  <!--       </div> -->
+              <!--     </div> -->
+            <!--   </div> -->
+
+          <!--   <div class="overflow-x-auto"> -->
+            <!--     <table class="w-full"> -->
+              <!--       <thead> -->
+                <!--         <tr class="bg-slate-100 border-b-2 border-slate-300"> -->
+                  <!--           <th class="px-4 py-3 text-left font-bold text-slate-700">スラバート</th> -->
+                  <!--           <th class="px-4 py-3 text-center font-bold text-slate-700">必要カウント</th> -->
+                  <!--           <th class="px-4 py-3 text-right font-bold text-slate-700">発動頻度</th> -->
+                  <!--           <th class="px-4 py-3 text-right font-bold text-slate-700">発動期待時間</th> -->
+                  <!--           <th class="px-4 py-3 text-right font-bold text-slate-700">17秒間の発動回数</th> -->
+                  <!--           <th class="px-4 py-3 text-left font-bold text-slate-700">起動アイテム</th> -->
+                  <!--         </tr> -->
+                <!--       </thead> -->
+              <!--       <tbody id="resultsBody"> -->
+                <!--         <\!-- Results will be inserted here -\-> -->
+                  <!--       </tbody> -->
+              <!--     </table> -->
+            <!--   </div> -->
+          <!-- </div> -->
+
+      <!-- Edit Modal -->
+      <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+          <h3 id="modalTitle" class="text-xl font-bold text-slate-800 mb-4"></h3>
+
+          <div id="modalContent" class="space-y-4">
+            <!-- Modal content will be dynamically shown/hidden -->
+
+            <!-- For Slabvart -->
+            <div id="slabvartFields" class="hidden">
+              <label class="block text-sm font-medium text-slate-700 mb-1">必要カウント数</label>
+              <input type="number" id="requiredCount" step="1" min="1" class="w-full px-3 py-2 border rounded-lg">
+              <p class="text-xs text-slate-500 mt-1">通常: スラバート=5, キングスラバート=6, チビバート=3</p>
+            </div>
+
+            <!-- For Item -->
+            <div id="itemFields" class="hidden">
+              <div id="itemNameField" class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">アイテム名（任意）</label>
+                <input type="text" id="itemName" list="itemPresets" class="w-full px-3 py-2 border rounded-lg" placeholder="入力または選択">
+                <datalist id="itemPresets">
+                  <!-- プリセットがここに入る -->
+                </datalist>
+              </div>
+
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">クールダウン (秒)</label>
+                <div class="flex gap-2">
+                  <input type="range" id="cooldownRange" min="1" max="5" step="0.1" class="flex-1">
+                  <input type="number" id="cooldownNumber" step="0.1" class="w-20 px-3 py-2 border rounded-lg">
+                  <span class="flex items-center text-slate-600">秒</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">加速率 (%)</label>
+                <div class="flex gap-2">
+                  <input type="range" id="accelerationRange" min="0" max="100" step="10" class="flex-1">
+                  <input type="number" id="accelerationNumber" step="1" class="w-20 px-3 py-2 border rounded-lg">
+                  <span class="flex items-center text-slate-600">%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex gap-3">
+            <button id="closeModalBtn" class="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">
+              閉じる
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Constants
+      const ITEM_PRESETS = {
+          'シェリー': 12.0, 'バナナ': 5.0, 'にんにく': 4.0, 'ブルーベリー': 3.5,
+          '欠けたアメシスト': 3.2, '傷物のアメシスト': 2.5, '輝ける王冠': 2.4,
+          '普通のアメシスト': 2.0, '魔人のランプ': 1.6, '無傷のアメシスト': 1.6,
+          'アタッククロー': 1.6, 'イッツスライムタイム': 1.7, 'ほうき': 1.7,
+          '飢えたる剣': 1.6, '完璧なアメシスト': 1.0, 'ハヤブサの剣': 0.85,
+      };
+
+      const SLABVART_STAR_POSITIONS = {
+          large: [{ dx: -1, dy: 0 }, { dx: -1, dy: 1 }, { dx: 2, dy: 0 }, { dx: 2, dy: 1 }],
+          king: [{ dx: -1, dy: 0 }, { dx: -1, dy: 1 }, { dx: -1, dy: 2 }, { dx: 2, dy: 0 }, { dx: 2, dy: 1 }, { dx: 2, dy: 2 }],
+          chibi: [{ dx: -1, dy: 0 }, { dx: 1, dy: 0 }]
+      };
+
+      const PALETTE_ITEMS = [
+          { type: 'slabvart', subtype: 'large', name: 'スラバート', color: 'bg-blue-500', bgColor: '#3b82f6', width: 2, height: 2 },
+          { type: 'slabvart', subtype: 'chibi', name: 'チビバート', color: 'bg-green-500', bgColor: '#22c55e', width: 1, height: 1 },
+          { type: 'item', name: 'アイテム', color: 'bg-amber-500', bgColor: '#f59e0b', width: 1, height: 1 },
+          { type: 'slimetime', name: 'イッツスライムタイム', color: 'bg-purple-500', bgColor: '#a855f7', width: 1, height: 1 },
+          { type: 'slabvart', subtype: 'king', name: 'キングスラバート', color: 'bg-indigo-600', bgColor: '#4f46e5', width: 2, height: 3 },
+      ];
+
+      // State
+      const state = {
+          backpack: Array(7).fill(null).map(() => Array(9).fill(null)),
+          draggedItem: null,
+          draggingFromBackpack: null,
+          editingCell: null,
+      };
+
+      // DOM Elements
+      const elements = {
+          palette: document.getElementById('palette'),
+          backpack: document.getElementById('backpack'),
+          calculateBtn: document.getElementById('calculateBtn'),
+          equations: document.getElementById('equations'),
+          equationsContent: document.getElementById('equationsContent'),
+          resultsContainer: document.getElementById('resultsContainer'),
+          editModal: document.getElementById('editModal'),
+          modalTitle: document.getElementById('modalTitle'),
+          closeModalBtn: document.getElementById('closeModalBtn'),
+          slabvartFields: document.getElementById('slabvartFields'),
+          itemFields: document.getElementById('itemFields'),
+          itemNameField: document.getElementById('itemNameField'),
+          requiredCount: document.getElementById('requiredCount'),
+          itemName: document.getElementById('itemName'),
+          cooldown: document.getElementById('cooldown'),
+          cooldownRange: document.getElementById('cooldownRange'),
+          cooldownNumber: document.getElementById('cooldownNumber'),
+          accelerationRange: document.getElementById('accelerationRange'),
+          accelerationNumber: document.getElementById('accelerationNumber'),
+          cells: []
+      };
+
+      // Utility Functions
+      function rotateSlabvart(row, col) {
+          const cell = state.backpack[row][col];
+          if (!cell || !cell.isOrigin || cell.type !== 'slabvart') return;
+
+          // 現在の位置をクリア
+          removeItem(cell.id);
+
+          // 回転後のサイズ
+          const newWidth = cell.height;
+          const newHeight = cell.width;
+          const newRotation = (cell.rotation + 90) % 360;
+
+          // 配置可能かチェック
+          const tempItem = { width: newWidth, height: newHeight };
+          if (!canPlace(state.backpack, row, col, tempItem)) {
+              // 元に戻す
+              placeRotatedItem(row, col, cell);
+              showToast('回転できません（スペース不足）');
+              return;
+          }
+
+          // 回転して配置
+          const id = Date.now() + Math.random();
+          for (let r = 0; r < newHeight; r++) {
+              for (let c = 0; c < newWidth; c++) {
+                  if (row + r < 7 && col + c < 9) {
+                      state.backpack[row + r][col + c] = {
+                          ...cell,
+                          id,
+                          width: newWidth,
+                          height: newHeight,
+                          rotation: newRotation,
+                          isOrigin: r === 0 && c === 0,
+                          originRow: row,
+                          originCol: col
+                      };
+                      updateCell(row + r, col + c);
+                  }
+              }
+          }
+      }
+
+      function placeRotatedItem(row, col, cellData) {
+          const id = Date.now() + Math.random();
+          for (let r = 0; r < cellData.height; r++) {
+              for (let c = 0; c < cellData.width; c++) {
+                  if (row + r < 7 && col + c < 9) {
+                      state.backpack[row + r][col + c] = {
+                          ...cellData,
+                          id,
+                          isOrigin: r === 0 && c === 0,
+                          originRow: row,
+                          originCol: col
+                      };
+                      updateCell(row + r, col + c);
+                  }
+              }
+          }
+      }
+
+      function showToast(message, type = 'error') {
+          const toast = document.getElementById('toast');
+          const toastMessage = document.getElementById('toastMessage');
+
+          toastMessage.textContent = message;
+
+          // 色を変更
+          toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg transform transition-transform duration-300 z-50 ${
+    type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+  } text-white`;
+
+          // 表示
+          toast.style.transform = 'translateX(0)';
+
+          // 3秒後に非表示
+          setTimeout(() => {
+              toast.style.transform = 'translateX(150%)';
+          }, 3000);
+      }
+
+      function canPlace(grid, row, col, item) {
+          for (let r = 0; r < item.height; r++) {
+              for (let c = 0; c < item.width; c++) {
+                  const newRow = row + r;
+                  const newCol = col + c;
+                  if (newRow >= 7 || newCol >= 9 || grid[newRow][newCol] !== null) {
+                      return false;
+                  }
+              }
+          }
+          return true;
+      }
+
+      function getCellColor(cell) {
+          if (!cell) return 'bg-slate-100 hover:bg-slate-200';
+          if (cell.type === 'slabvart') {
+              return cell.subtype === 'large' ? 'bg-blue-400' :
+                  cell.subtype === 'king' ? 'bg-indigo-500' : 'bg-green-400';
+          }
+          if (cell.type === 'slimetime') return 'bg-purple-400';
+          return 'bg-amber-400';
+      }
+
+      function getCellText(cell) {
+          if (!cell || !cell.isOrigin) return '';
+
+          if (cell.type === 'slabvart') {
+              return cell.subtype === 'large' ? 'ス' : cell.subtype === 'king' ? '王' : 'チ';
+          } else if (cell.type === 'slimetime') {
+              return 'スラ';
+          } else {
+              return cell.itemName ? cell.itemName.substring(0, 2) : 'IT';
+          }
+      }
+
+      function updateCell(row, col) {
+          const cell = state.backpack[row][col];
+          const cellEl = elements.cells[row * 9 + col];
+
+          cellEl.className = `cell w-12 h-12 border border-slate-300 ${getCellColor(cell)} cursor-pointer flex items-center justify-center transition relative`;
+          cellEl.style.cssText = '';
+
+          const text = getCellText(cell);
+          let starIndicator = '';
+
+          // スラバートの星位置を視覚化
+          if (cell && cell.type === 'slabvart') {
+              const originCell = state.backpack[cell.originRow][cell.originCol];
+              const rotation = originCell.rotation || 0;
+
+              // 現在のセルが起点からの相対位置
+              const relRow = row - cell.originRow;
+              const relCol = col - cell.originCol;
+
+              // チビバートの場合
+              if (cell.subtype === 'chibi') {
+                  if (rotation === 0 || rotation === 180) {
+                      // 横向き：左右に星
+                      starIndicator = `
+          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-yellow-400 rounded-r"></div>
+          <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-yellow-400 rounded-l"></div>
+        `;
+                  } else {
+                      // 縦向き：上下に星
+                      starIndicator = `
+          <div class="absolute top-0 left-1/2 -translate-x-1/2 h-1 w-4 bg-yellow-400 rounded-b"></div>
+          <div class="absolute bottom-0 left-1/2 -translate-x-1/2 h-1 w-4 bg-yellow-400 rounded-t"></div>
+        `;
+                  }
+              }
+              // スラバート・キングスラバートの場合
+              else {
+                  if (rotation === 0 || rotation === 180) {
+                      // 横向き：左端と右端のセルに星
+                      if (relCol === 0) {
+                          starIndicator = `<div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-yellow-400 rounded-r"></div>`;
+                      }
+                      if (relCol === cell.width - 1) {
+                          starIndicator = `<div class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-yellow-400 rounded-l"></div>`;
+                      }
+                  } else {
+                      // 縦向き：上端と下端のセルに星
+                      if (relRow === 0) {
+                          starIndicator = `<div class="absolute top-0 left-1/2 -translate-x-1/2 h-1 w-4 bg-yellow-400 rounded-b"></div>`;
+                      }
+                      if (relRow === cell.height - 1) {
+                          starIndicator = `<div class="absolute bottom-0 left-1/2 -translate-x-1/2 h-1 w-4 bg-yellow-400 rounded-t"></div>`;
+                      }
+                  }
+              }
+          }
+
+          if (cell && cell.type === 'slabvart' && cell.isOrigin) {
+              cellEl.innerHTML = `
+      ${starIndicator}
+      <span class="text-xs font-bold text-white z-10">${text}</span>
+    `;
+          } else {
+              cellEl.innerHTML = `
+      ${starIndicator}
+      <span class="text-xs font-bold text-white">${text}</span>
+    `;
+          }
+
+          cellEl.draggable = cell !== null;
+      }
+
+
+
+      function placeItem(row, col, itemData) {
+          const id = Date.now() + Math.random();
+          for (let r = 0; r < itemData.height; r++) {
+              for (let c = 0; c < itemData.width; c++) {
+                  if (row + r < 7 && col + c < 9) {
+                      state.backpack[row + r][col + c] = {
+                          id, type: itemData.type, subtype: itemData.subtype,
+                          name: itemData.name, isOrigin: r === 0 && c === 0,
+                          originRow: row, originCol: col,
+                          width: itemData.width, height: itemData.height,
+                          rotation: 0,  // 追加
+                          ...(itemData.type === 'item' ? { itemName: '', cooldown: 1.6, acceleration: 0 } :
+                              itemData.type === 'slimetime' ? { itemName: 'イッツスライムタイム', cooldown: 1.7, acceleration: 0 } :
+                              { requiredCount: itemData.subtype === 'large' ? 5 : itemData.subtype === 'king' ? 6 : 3 })
+                      };
+                      updateCell(row + r, col + c);
+                  }
+              }
+          }
+      }
+
+      function removeItem(id) {
+          for (let r = 0; r < 7; r++) {
+              for (let c = 0; c < 9; c++) {
+                  if (state.backpack[r][c] && state.backpack[r][c].id === id) {
+                      state.backpack[r][c] = null;
+                      updateCell(r, c);
+                  }
+              }
+          }
+      }
+
+      function moveItem(fromRow, fromCol, toRow, toCol) {
+          const cell = state.backpack[fromRow][fromCol];
+          if (!cell || !cell.isOrigin) return false;
+
+          const tempBackpack = state.backpack.map(r => [...r]);
+
+          // Clear old position
+          for (let r = 0; r < 7; r++) {
+              for (let c = 0; c < 9; c++) {
+                  if (tempBackpack[r][c] && tempBackpack[r][c].id === cell.id) {
+                      tempBackpack[r][c] = null;
+                  }
+              }
+          }
+
+          // Check if can place
+          if (!canPlace(tempBackpack, toRow, toCol, cell)) return false;
+
+          // Place at new position
+          for (let r = 0; r < cell.height; r++) {
+              for (let c = 0; c < cell.width; c++) {
+                  if (toRow + r < 7 && toCol + c < 9) {
+                      tempBackpack[toRow + r][toCol + c] = {
+                          ...cell, isOrigin: r === 0 && c === 0,
+                          originRow: toRow, originCol: toCol
+                      };
+                  }
+              }
+          }
+
+          state.backpack = tempBackpack;
+
+          // Update all affected cells
+          for (let r = 0; r < 7; r++) {
+              for (let c = 0; c < 9; c++) {
+                  updateCell(r, c);
+              }
+          }
+
+          return true;
+      }
+
+      // Drag & Drop Handlers
+      function handlePaletteDragStart(e, item) {
+          state.draggedItem = item;
+          state.draggingFromBackpack = null;
+          e.dataTransfer.effectAllowed = 'copy';
+          createDragImage(e, item.width, item.height, item.bgColor);
+      }
+
+      function handleCellDragStart(e, row, col) {
+          const cell = state.backpack[row][col];
+          if (!cell || !cell.isOrigin) {
+              e.preventDefault();
+              return;
+          }
+
+          state.draggingFromBackpack = { row, col, cell };
+          state.draggedItem = null;
+          e.dataTransfer.effectAllowed = 'move';
+
+          const colors = {
+              slabvart: cell.subtype === 'large' ? '#3b82f6' : cell.subtype === 'king' ? '#4f46e5' : '#22c55e',
+              slimetime: '#a855f7',
+              item: '#f59e0b'
+          };
+          createDragImage(e, cell.width, cell.height, colors[cell.type] || '#3b82f6');
+      }
+
+      function createDragImage(e, width, height, color) {
+          const dragImage = document.createElement('div');
+          dragImage.style.cssText = `width:${width*24}px;height:${height*24}px;background-color:${color};border:2px solid white;border-radius:4px;position:absolute;top:-1000px;`;
+          document.body.appendChild(dragImage);
+          e.dataTransfer.setDragImage(dragImage, width * 12, height * 12);
+          setTimeout(() => document.body.removeChild(dragImage), 0);
+      }
+
+      function handleCellDragOver(e, row, col) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = state.draggedItem ? 'copy' : 'move';
+          elements.cells[row * 9 + col].classList.add('drag-over');
+      }
+
+      function handleCellDragLeave(e, row, col) {
+          elements.cells[row * 9 + col].classList.remove('drag-over');
+      }
+
+      function handleCellDrop(e, row, col) {
+          e.preventDefault();
+          elements.cells[row * 9 + col].classList.remove('drag-over');
+
+          // バックパック内の移動または複製
+          if (state.draggingFromBackpack) {
+              const { row: fromRow, col: fromCol, cell: draggedCell } = state.draggingFromBackpack;
+              const isCtrlPressed = e.ctrlKey || e.metaKey; // Ctrl (Windows/Linux) または Cmd (Mac)
+
+              if (fromRow === row && fromCol === col) {
+                  state.draggingFromBackpack = null;
+                  return;
+              }
+
+              if (isCtrlPressed) {
+                  // 複製モード
+                  // イッツスライムタイムの制約チェック
+                  if (draggedCell.type === 'slimetime') {
+                      for (let r = 0; r < 7; r++) {
+                          for (let c = 0; c < 9; c++) {
+                              if (state.backpack[r][c] && state.backpack[r][c].type === 'slimetime') {
+                                  showToast('イッツスライムタイムは1つまでしか配置できません');
+                                  state.draggingFromBackpack = null;
+                                  return;
+                              }
+                          }
+                      }
+                  }
+
+                  if (!canPlace(state.backpack, row, col, draggedCell)) {
+                      showToast('ここには配置できません');
+                      state.draggingFromBackpack = null;
+                      return;
+                  }
+
+                  // 複製して配置
+                  const id = Date.now() + Math.random();
+                  for (let r = 0; r < draggedCell.height; r++) {
+                      for (let c = 0; c < draggedCell.width; c++) {
+                          if (row + r < 7 && col + c < 9) {
+                              state.backpack[row + r][col + c] = {
+                                  ...draggedCell,
+                                  id,
+                                  isOrigin: r === 0 && c === 0,
+                                  originRow: row,
+                                  originCol: col
+                              };
+                              updateCell(row + r, col + c);
+                          }
+                      }
+                  }
+              } else {
+                  // 移動モード（既存の処理）
+                  if (!moveItem(fromRow, fromCol, row, col)) {
+                      showToast('ここには配置できません');
+                  }
+              }
+
+              state.draggingFromBackpack = null;
+              return;
+          }
+
+          // Place from palette
+          if (!state.draggedItem) return;
+
+          // Check SlimeTime constraint
+          if (state.draggedItem.type === 'slimetime') {
+              for (let r = 0; r < 7; r++) {
+                  for (let c = 0; c < 9; c++) {
+                      if (state.backpack[r][c] && state.backpack[r][c].type === 'slimetime') {
+                          showToast('イッツスライムタイムは1つまでしか配置できません');
+                          state.draggedItem = null;
+                          return;
+                      }
+                  }
+              }
+          }
+
+          if (!canPlace(state.backpack, row, col, state.draggedItem)) {
+              showToast('ここには配置できません');
+              state.draggedItem = null;
+              return;
+          }
+          placeItem(row, col, state.draggedItem);
+          state.draggedItem = null;
+      }
+
+      function handleCellRightClick(e, row, col) {
+          e.preventDefault();
+          const cell = state.backpack[row][col];
+          if (cell) removeItem(cell.id);
+      }
+
+      function handleCellDoubleClick(e, row, col) {
+          const cell = state.backpack[row][col];
+          if (!cell || !cell.isOrigin) return;
+
+          // スラバートの場合
+          if (cell.type === 'slabvart') {
+              // Shiftキー押下時は回転
+              if (e.shiftKey) {
+                  rotateSlabvart(row, col);
+              } else {
+                  // 通常は編集モーダル
+                  state.editingCell = { row, col };
+                  showEditModal(cell);
+              }
+          } else {
+              // その他のアイテムは編集モーダル
+              state.editingCell = { row, col };
+              showEditModal(cell);
+          }
+      }
+
+      // Modal Functions
+      function showEditModal(cell) {
+          elements.modalTitle.textContent = cell.type === 'slabvart' ? 'スラバート設定' : 'アイテム設定';
+
+          if (cell.type === 'slabvart') {
+              elements.slabvartFields.classList.remove('hidden');
+              elements.itemFields.classList.add('hidden');
+              elements.requiredCount.value = cell.requiredCount;
+          } else {
+              elements.slabvartFields.classList.add('hidden');
+              elements.itemFields.classList.remove('hidden');
+
+              if (cell.type === 'item') {
+                  elements.itemNameField.classList.remove('hidden');
+                  elements.itemName.value = cell.itemName || '';
+              } else {
+                  elements.itemNameField.classList.add('hidden');
+              }
+
+              elements.cooldownRange.value = cell.cooldown;
+              elements.cooldownNumber.value = cell.cooldown;
+              elements.accelerationRange.value = cell.acceleration;
+              elements.accelerationNumber.value = cell.acceleration;
+          }
+
+          elements.editModal.classList.remove('hidden');
+          elements.editModal.classList.add('flex');
+      }
+
+      function closeEditModal() {
+          elements.editModal.classList.add('hidden');
+          elements.editModal.classList.remove('flex');
+          state.editingCell = null;
+      }
+
+      function updateEditingItem(updates) {
+          if (!state.editingCell) return;
+
+          const { row, col } = state.editingCell;
+          const cell = state.backpack[row][col];
+          if (!cell) return;
+
+          for (let r = 0; r < 7; r++) {
+              for (let c = 0; c < 9; c++) {
+                  if (state.backpack[r][c] && state.backpack[r][c].id === cell.id) {
+                      Object.assign(state.backpack[r][c], updates);
+                      updateCell(r, c);
+                  }
+              }
+          }
+      }
+
+      // Calculate Function
+      function gaussianElimination(A, b) {
+          const n = A.length;
+          const augmented = A.map((row, i) => [...row, b[i]]);
+
+          for (let i = 0; i < n; i++) {
+              let maxRow = i;
+              for (let k = i + 1; k < n; k++) {
+                  if (Math.abs(augmented[k][i]) > Math.abs(augmented[maxRow][i])) maxRow = k;
+              }
+              [augmented[i], augmented[maxRow]] = [augmented[maxRow], augmented[i]];
+
+              const pivot = augmented[i][i];
+              if (Math.abs(pivot) < 1e-10) throw new Error('解が一意に定まりません');
+
+              for (let j = i; j <= n; j++) augmented[i][j] /= pivot;
+              for (let k = i + 1; k < n; k++) {
+                  const factor = augmented[k][i];
+                  for (let j = i; j <= n; j++) augmented[k][j] -= factor * augmented[i][j];
+              }
+          }
+
+          const x = Array(n).fill(0);
+          for (let i = n - 1; i >= 0; i--) {
+              x[i] = augmented[i][n];
+              for (let j = i + 1; j < n; j++) x[i] -= augmented[i][j] * x[j];
+          }
+          return x;
+      }
+
+      function calculate() {
+          try {
+              const slabvarts = [];
+
+              for (let r = 0; r < 7; r++) {
+                  for (let c = 0; c < 9; c++) {
+                      const cell = state.backpack[r][c];
+                      if (cell && cell.type === 'slabvart' && cell.isOrigin) {
+                          slabvarts.push({
+                              id: cell.id, row: r, col: c, subtype: cell.subtype,
+                              requiredCount: cell.requiredCount || (cell.subtype === 'large' ? 5 : cell.subtype === 'king' ? 6 : 3),
+                              stars: []
+                          });
+                      }
+                  }
+              }
+
+              if (slabvarts.length === 0) {
+                  showToast('スラバートが配置されていません', 'error');
+                  return;
+              }
+
+              // Find stars
+              slabvarts.forEach(slabvart => {
+                  const pattern = SLABVART_STAR_POSITIONS[slabvart.subtype];
+                  const cellData = state.backpack[slabvart.row][slabvart.col];
+                  const rotation = cellData.rotation || 0;
+
+                  pattern.forEach(({ dx, dy }) => {
+                      let starRow, starCol;
+
+                      // 回転を考慮した星位置の計算
+                      if (rotation === 0) {
+                          starRow = slabvart.row + dy;
+                          starCol = slabvart.col + dx;
+                      } else if (rotation === 90) {
+                          starRow = slabvart.row + dx;
+                          starCol = slabvart.col + (cellData.width - 1 - dy);
+                      } else if (rotation === 180) {
+                          starRow = slabvart.row + (cellData.height - 1 - dy);
+                          starCol = slabvart.col + (cellData.width - 1 - dx);
+                      } else { // 270
+                          starRow = slabvart.row + (cellData.height - 1 - dx);
+                          starCol = slabvart.col + dy;
+                      }
+
+                      if (starRow >= 0 && starRow < 7 && starCol >= 0 && starCol < 9) {
+                          const starCell = state.backpack[starRow][starCol];
+                          if (starCell) {
+                              if (starCell.type === 'item' || starCell.type === 'slimetime') {
+                                  slabvart.stars.push({
+                                      type: 'item', itemName: starCell.itemName,
+                                      cooldown: starCell.cooldown, acceleration: starCell.acceleration,
+                                      isSlimeTime: starCell.type === 'slimetime'
+                                  });
+                              } else if (starCell.type === 'slabvart') {
+                                  slabvart.stars.push({ type: 'slabvart', targetId: starCell.id });
+                              }
+                          }
+                      }
+                  });
+              });
+
+              // Find SlimeTime frequency
+              let slimeFreq = 0;
+              for (let r = 0; r < 7; r++) {
+                  for (let c = 0; c < 9; c++) {
+                      const cell = state.backpack[r][c];
+                      if (cell && cell.type === 'slimetime') {
+                          slimeFreq = (1 / cell.cooldown) * (1 + (cell.acceleration || 0) / 100);
+                          break;
+                      }
+                  }
+              }
+
+              // Build system of equations
+              const idToIndex = new Map(slabvarts.map((s, i) => [s.id, i]));
+              const n = slabvarts.length;
+              const A = Array(n).fill(0).map(() => Array(n).fill(0));
+              const b = Array(n).fill(0);
+
+              slabvarts.forEach((slabvart, i) => {
+                  const N = slabvart.requiredCount;
+                  A[i][i] = 1;
+                  let constantTerm = slimeFreq;
+
+                  slabvart.stars.forEach(star => {
+                      if (star.type === 'item') {
+                          const freq = (1 / star.cooldown) * (1 + (star.acceleration || 0) / 100);
+                          constantTerm += freq;
+                          if (star.isSlimeTime) constantTerm += slimeFreq;
+                      } else if (star.type === 'slabvart') {
+                          const j = idToIndex.get(star.targetId);
+                          if (j !== undefined) A[i][j] = -1 / N;
+                      }
+                  });
+
+                  b[i] = constantTerm / N;
+              });
+
+              // 連立方程式の表示
+              let equationText = '';
+              slabvarts.forEach((s, i) => {
+                  const name = `f${i}`;
+                  const slabName = s.subtype === 'large' ? 'スラバート' : s.subtype === 'king' ? 'キングスラバート' : 'チビバート';
+                  equationText += `${name} (${slabName}(${s.row},${s.col})の発動頻度):\n`;
+
+                  let equation = `  ${name} = (`;
+                  let terms = [];
+
+                  // 定数項
+                  let constantTerm = 0;
+                  slabvarts.forEach((_, j) => {
+                      if (A[i][j] !== 0 && i !== j) {
+                          const coef = -A[i][j] * s.requiredCount;
+                          terms.push(`${coef.toFixed(3)} × f${j}`);
+                      }
+                  });
+
+                  constantTerm = b[i] * s.requiredCount;
+                  if (constantTerm !== 0) {
+                      terms.push(constantTerm.toFixed(3));
+                  }
+
+                  equation += terms.join(' + ');
+                  equation += `) / ${s.requiredCount}`;
+                  equationText += equation + '\n\n';
+              });
+
+              elements.equationsContent.textContent = equationText;
+              elements.equations.classList.remove('hidden');
+
+              const frequencies = gaussianElimination(A, b);
+
+              // 結果パネルを作成
+              const resultId = `result-${Date.now()}`;
+              const resultPanel = document.createElement('div');
+              resultPanel.id = resultId;
+              resultPanel.className = 'bg-white rounded-lg shadow-lg p-6';
+              resultPanel.innerHTML = `
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-xl font-bold text-slate-800">計算結果 ${new Date().toLocaleTimeString()}</h2>
+    <button class="delete-result px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 flex items-center gap-1">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+</svg>
+削除
+</button>
+</div>
+
+<!-- バックパック配置のミニチュア -->
+<div class="mb-6 p-4 bg-slate-50 rounded-lg">
+  <h3 class="text-sm font-bold text-slate-700 mb-2">配置</h3>
+  <div class="inline-block border-2 border-slate-700 rounded p-1 bg-slate-200">
+    <div class="mini-backpack grid gap-0.5" style="grid-template-columns: repeat(9, 1fr);"></div>
+  </div>
+</div>
+
+<div class="overflow-x-auto">
+  <table class="w-full">
+    <thead>
+      <tr class="bg-slate-100 border-b-2 border-slate-300">
+        <th class="px-4 py-3 text-left font-bold text-slate-700">スラバート</th>
+        <th class="px-4 py-3 text-center font-bold text-slate-700">必要カウント</th>
+        <th class="px-4 py-3 text-right font-bold text-slate-700">発動頻度</th>
+        <th class="px-4 py-3 text-right font-bold text-slate-700">発動期待時間</th>
+        <th class="px-4 py-3 text-right font-bold text-slate-700">17秒間の発動回数</th>
+        <th class="px-4 py-3 text-left font-bold text-slate-700">起動アイテム</th>
+      </tr>
+    </thead>
+    <tbody class="results-body"></tbody>
+  </table>
+</div>
+`;
+
+              // ミニバックパックを生成
+              const miniBackpack = resultPanel.querySelector('.mini-backpack');
+              for (let r = 0; r < 7; r++) {
+                  for (let c = 0; c < 9; c++) {
+                      const cell = state.backpack[r][c];
+                      const div = document.createElement('div');
+                      div.className = `w-6 h-6 border border-slate-300 ${getCellColor(cell)} flex items-center justify-center`;
+                      div.innerHTML = `<span class="text-[8px] font-bold text-white">${getCellText(cell)}</span>`;
+                      miniBackpack.appendChild(div);
+                  }
+              }
+
+              // 結果テーブルを生成
+              const resultsBody = resultPanel.querySelector('.results-body');
+              slabvarts.forEach((s, i) => {
+                  const freq = frequencies[i];
+                  const row = resultsBody.insertRow();
+                  row.className = 'border-b hover:bg-slate-50';
+                  row.innerHTML = `
+                    <td class="px-4 py-3 font-medium text-slate-800">${s.subtype === 'large' ? 'スラバート' : s.subtype === 'king' ? 'キングスラバート' : 'チビバート'}(${s.row},${s.col})</td>
+  <td class="px-4 py-3 text-center text-slate-700">${s.requiredCount}</td>
+  <td class="px-4 py-3 text-right text-slate-700">${freq.toFixed(3)} 回/秒</td>
+  <td class="px-4 py-3 text-right text-slate-700">${(1/freq).toFixed(3)} 秒</td>
+  <td class="px-4 py-3 text-right text-slate-700">${(freq*17).toFixed(2)} 回</td>
+  <td class="px-4 py-3 text-slate-700"><div class="text-xs space-y-1">${s.stars.map(st =>
+  `<div>${st.type === 'item' ? (st.itemName || 'アイテム') : 'スラバート'}</div>`
+  ).join('')}</div></td>
+`;
+              });
+
+              // 削除ボタンのイベントリスナー
+              resultPanel.querySelector('.delete-result').addEventListener('click', () => {
+                  resultPanel.remove();
+                  if (elements.resultsContainer.children.length === 0) {
+                      // 全て削除されたら連立方程式も非表示
+                      elements.equations.classList.add('hidden');
+                  }
+              });
+
+              // 結果を先頭に追加（新しい結果が上に来る）
+              elements.resultsContainer.insertBefore(resultPanel, elements.resultsContainer.firstChild);
+
+          } catch (error) {
+              showToast('計算エラー: ' + error.message, 'error');
+          }
+      }
+
+      // Initialize
+      function init() {
+          // Create palette items
+          PALETTE_ITEMS.forEach(item => {
+              const div = document.createElement('div');
+              div.draggable = true;
+              div.className = 'w-full p-4 rounded-lg border-2 border-slate-300 hover:border-blue-400 cursor-move transition';
+              div.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="${item.color} w-12 h-12 rounded flex items-center justify-center text-white font-bold">${item.width}x${item.height}</div>
+        <span class="font-medium text-slate-700">${item.name}</span>
+      </div>
+      `;
+              div.addEventListener('dragstart', (e) => handlePaletteDragStart(e, item));
+              elements.palette.appendChild(div);
+          });
+
+          // Create backpack cells
+          for (let r = 0; r < 7; r++) {
+              for (let c = 0; c < 9; c++) {
+                  const div = document.createElement('div');
+                  div.className = 'cell w-12 h-12 border border-slate-300 bg-slate-100 hover:bg-slate-200 cursor-pointer flex items-center justify-center transition';
+                  div.addEventListener('dragstart', (e) => handleCellDragStart(e, r, c));
+                  div.addEventListener('dragover', (e) => handleCellDragOver(e, r, c));
+                  div.addEventListener('dragleave', (e) => handleCellDragLeave(e, r, c));
+                  div.addEventListener('drop', (e) => handleCellDrop(e, r, c));
+                  div.addEventListener('contextmenu', (e) => handleCellRightClick(e, r, c));
+                  div.addEventListener('dblclick', (e) => handleCellDoubleClick(e, r, c));
+                  elements.cells.push(div);
+                  elements.backpack.appendChild(div);
+              }
+          }
+
+          // Populate item name dropdown
+          // Populate item name datalist
+          const datalist = document.getElementById('itemPresets');
+          Object.keys(ITEM_PRESETS).forEach(name => {
+              const option = document.createElement('option');
+              option.value = name;
+              datalist.appendChild(option);
+          });
+
+          // Event listeners
+          elements.calculateBtn.addEventListener('click', calculate);
+          elements.closeModalBtn.addEventListener('click', closeEditModal);
+
+          elements.editModal.addEventListener('click', (e) => {
+              if (e.target === elements.editModal) closeEditModal();
+          });
+
+          elements.requiredCount.addEventListener('input', (e) => {
+              updateEditingItem({ requiredCount: parseInt(e.target.value) || 5 });
+          });
+
+          elements.itemName.addEventListener('change', (e) => {
+              const name = e.target.value;
+              updateEditingItem({ itemName: name });
+
+              // プリセットに存在する場合のみクールダウンを設定
+              if (ITEM_PRESETS[name]) {
+                  updateEditingItem({ cooldown: ITEM_PRESETS[name] });
+                  elements.cooldownRange.value = ITEM_PRESETS[name];
+                  elements.cooldownNumber.value = ITEM_PRESETS[name];
+              }
+          });
+
+          elements.cooldownRange.addEventListener('input', (e) => {
+              const val = parseFloat(e.target.value);
+              elements.cooldownNumber.value = val;
+              updateEditingItem({ cooldown: val });
+          });
+
+          elements.cooldownNumber.addEventListener('input', (e) => {
+              const val = parseFloat(e.target.value) || 1.6;
+              elements.cooldownRange.value = val;
+              updateEditingItem({ cooldown: val });
+          });
+
+          elements.accelerationRange.addEventListener('input', (e) => {
+              const val = parseInt(e.target.value);
+              elements.accelerationNumber.value = val;
+              updateEditingItem({ acceleration: val });
+          });
+
+          elements.accelerationNumber.addEventListener('input', (e) => {
+              const val = parseFloat(e.target.value) || 0;
+              elements.accelerationRange.value = val;
+              updateEditingItem({ acceleration: val });
+          });
+      }
+
+      // Start
+      init();
+      </script>
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg transition-transform duration-300 z-50" style="transform: translateX(150%);">
+      <span id="toastMessage"></span>
+    </div>
+  </body>
+</html>
