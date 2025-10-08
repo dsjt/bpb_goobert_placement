@@ -119,8 +119,8 @@
           <div id="modalContent" class="space-y-4">
             <!-- Modal content will be dynamically shown/hidden -->
 
-            <!-- For Slabvart -->
-            <div id="slabvartFields" class="hidden">
+            <!-- For Goobert -->
+            <div id="goobertFields" class="hidden">
               <label class="block text-sm font-medium text-slate-700 mb-1">必要カウント数</label>
               <input type="number" id="requiredCount" step="1" min="1" class="w-full px-3 py-2 border rounded-lg">
               <p class="text-xs text-slate-500 mt-1">通常: スラバート=5, キングスラバート=6, チビバート=3</p>
@@ -175,18 +175,18 @@
           '飢えたる剣': 1.6, '完璧なアメシスト': 1.0, 'ハヤブサの剣': 0.85,
       };
 
-      const SLABVART_STAR_POSITIONS = {
+      const GOOBERT_STAR_POSITIONS = {
           large: [{ dx: -1, dy: 0 }, { dx: -1, dy: 1 }, { dx: 2, dy: 0 }, { dx: 2, dy: 1 }],
           king: [{ dx: -1, dy: 0 }, { dx: -1, dy: 1 }, { dx: -1, dy: 2 }, { dx: 2, dy: 0 }, { dx: 2, dy: 1 }, { dx: 2, dy: 2 }],
           chibi: [{ dx: -1, dy: 0 }, { dx: 1, dy: 0 }]
       };
 
       const PALETTE_ITEMS = [
-          { type: 'slabvart', subtype: 'large', name: 'スラバート', color: 'bg-blue-500', bgColor: '#3b82f6', width: 2, height: 2 },
-          { type: 'slabvart', subtype: 'chibi', name: 'チビバート', color: 'bg-green-500', bgColor: '#22c55e', width: 1, height: 1 },
+          { type: 'goobert', subtype: 'large', name: 'スラバート', color: 'bg-blue-500', bgColor: '#3b82f6', width: 2, height: 2 },
+          { type: 'goobert', subtype: 'chibi', name: 'チビバート', color: 'bg-green-500', bgColor: '#22c55e', width: 1, height: 1 },
           { type: 'item', name: 'アイテム', color: 'bg-amber-500', bgColor: '#f59e0b', width: 1, height: 1 },
           { type: 'slimetime', name: 'イッツスライムタイム', color: 'bg-purple-500', bgColor: '#a855f7', width: 1, height: 1 },
-          { type: 'slabvart', subtype: 'king', name: 'キングスラバート', color: 'bg-indigo-600', bgColor: '#4f46e5', width: 2, height: 3 },
+          { type: 'goobert', subtype: 'king', name: 'キングスラバート', color: 'bg-indigo-600', bgColor: '#4f46e5', width: 2, height: 3 },
       ];
 
       // State
@@ -208,7 +208,7 @@
           editModal: document.getElementById('editModal'),
           modalTitle: document.getElementById('modalTitle'),
           closeModalBtn: document.getElementById('closeModalBtn'),
-          slabvartFields: document.getElementById('slabvartFields'),
+          goobertFields: document.getElementById('goobertFields'),
           itemFields: document.getElementById('itemFields'),
           itemNameField: document.getElementById('itemNameField'),
           requiredCount: document.getElementById('requiredCount'),
@@ -222,9 +222,9 @@
       };
 
       // Utility Functions
-      function rotateSlabvart(row, col) {
+      function rotateGoobert(row, col) {
           const cell = state.backpack[row][col];
-          if (!cell || !cell.isOrigin || cell.type !== 'slabvart') return;
+          if (!cell || !cell.isOrigin || cell.type !== 'goobert') return;
 
           // 現在の位置をクリア
           removeItem(cell.id);
@@ -317,7 +317,7 @@
 
       function getCellColor(cell) {
           if (!cell) return 'bg-slate-100 hover:bg-slate-200';
-          if (cell.type === 'slabvart') {
+          if (cell.type === 'goobert') {
               return cell.subtype === 'large' ? 'bg-blue-400' :
                   cell.subtype === 'king' ? 'bg-indigo-500' : 'bg-green-400';
           }
@@ -328,7 +328,7 @@
       function getCellText(cell) {
           if (!cell || !cell.isOrigin) return '';
 
-          if (cell.type === 'slabvart') {
+          if (cell.type === 'goobert') {
               return cell.subtype === 'large' ? 'ス' : cell.subtype === 'king' ? '王' : 'チ';
           } else if (cell.type === 'slimetime') {
               return 'スラ';
@@ -348,7 +348,7 @@
           let starIndicator = '';
 
           // スラバートの星位置を視覚化
-          if (cell && cell.type === 'slabvart') {
+          if (cell && cell.type === 'goobert') {
               const originCell = state.backpack[cell.originRow][cell.originCol];
               const rotation = originCell.rotation || 0;
 
@@ -394,7 +394,7 @@
               }
           }
 
-          if (cell && cell.type === 'slabvart' && cell.isOrigin) {
+          if (cell && cell.type === 'goobert' && cell.isOrigin) {
               cellEl.innerHTML = `
       ${starIndicator}
       <span class="text-xs font-bold text-white z-10">${text}</span>
@@ -505,7 +505,7 @@
           e.dataTransfer.effectAllowed = 'move';
 
           const colors = {
-              slabvart: cell.subtype === 'large' ? '#3b82f6' : cell.subtype === 'king' ? '#4f46e5' : '#22c55e',
+              goobert: cell.subtype === 'large' ? '#3b82f6' : cell.subtype === 'king' ? '#4f46e5' : '#22c55e',
               slimetime: '#a855f7',
               item: '#f59e0b'
           };
@@ -628,10 +628,10 @@
           if (!cell || !cell.isOrigin) return;
 
           // スラバートの場合
-          if (cell.type === 'slabvart') {
+          if (cell.type === 'goobert') {
               // Shiftキー押下時は回転
               if (e.shiftKey) {
-                  rotateSlabvart(row, col);
+                  rotateGoobert(row, col);
               } else {
                   // 通常は編集モーダル
                   state.editingCell = { row, col };
@@ -646,14 +646,14 @@
 
       // Modal Functions
       function showEditModal(cell) {
-          elements.modalTitle.textContent = cell.type === 'slabvart' ? 'スラバート設定' : 'アイテム設定';
+          elements.modalTitle.textContent = cell.type === 'goobert' ? 'スラバート設定' : 'アイテム設定';
 
-          if (cell.type === 'slabvart') {
-              elements.slabvartFields.classList.remove('hidden');
+          if (cell.type === 'goobert') {
+              elements.goobertFields.classList.remove('hidden');
               elements.itemFields.classList.add('hidden');
               elements.requiredCount.value = cell.requiredCount;
           } else {
-              elements.slabvartFields.classList.add('hidden');
+              elements.goobertFields.classList.add('hidden');
               elements.itemFields.classList.remove('hidden');
 
               if (cell.type === 'item') {
@@ -728,13 +728,13 @@
 
       function calculate() {
           try {
-              const slabvarts = [];
+              const gooberts = [];
 
               for (let r = 0; r < 7; r++) {
                   for (let c = 0; c < 9; c++) {
                       const cell = state.backpack[r][c];
-                      if (cell && cell.type === 'slabvart' && cell.isOrigin) {
-                          slabvarts.push({
+                      if (cell && cell.type === 'goobert' && cell.isOrigin) {
+                          gooberts.push({
                               id: cell.id, row: r, col: c, subtype: cell.subtype,
                               requiredCount: cell.requiredCount || (cell.subtype === 'large' ? 5 : cell.subtype === 'king' ? 6 : 3),
                               stars: []
@@ -743,15 +743,15 @@
                   }
               }
 
-              if (slabvarts.length === 0) {
+              if (gooberts.length === 0) {
                   showToast('スラバートが配置されていません', 'error');
                   return;
               }
 
               // Find stars
-              slabvarts.forEach(slabvart => {
-                  const pattern = SLABVART_STAR_POSITIONS[slabvart.subtype];
-                  const cellData = state.backpack[slabvart.row][slabvart.col];
+              gooberts.forEach(goobert => {
+                  const pattern = GOOBERT_STAR_POSITIONS[goobert.subtype];
+                  const cellData = state.backpack[goobert.row][goobert.col];
                   const rotation = cellData.rotation || 0;
 
                   pattern.forEach(({ dx, dy }) => {
@@ -759,30 +759,30 @@
 
                       // 回転を考慮した星位置の計算
                       if (rotation === 0) {
-                          starRow = slabvart.row + dy;
-                          starCol = slabvart.col + dx;
+                          starRow = goobert.row + dy;
+                          starCol = goobert.col + dx;
                       } else if (rotation === 90) {
-                          starRow = slabvart.row + dx;
-                          starCol = slabvart.col + (cellData.width - 1 - dy);
+                          starRow = goobert.row + dx;
+                          starCol = goobert.col + (cellData.width - 1 - dy);
                       } else if (rotation === 180) {
-                          starRow = slabvart.row + (cellData.height - 1 - dy);
-                          starCol = slabvart.col + (cellData.width - 1 - dx);
+                          starRow = goobert.row + (cellData.height - 1 - dy);
+                          starCol = goobert.col + (cellData.width - 1 - dx);
                       } else { // 270
-                          starRow = slabvart.row + (cellData.height - 1 - dx);
-                          starCol = slabvart.col + dy;
+                          starRow = goobert.row + (cellData.height - 1 - dx);
+                          starCol = goobert.col + dy;
                       }
 
                       if (starRow >= 0 && starRow < 7 && starCol >= 0 && starCol < 9) {
                           const starCell = state.backpack[starRow][starCol];
                           if (starCell) {
                               if (starCell.type === 'item' || starCell.type === 'slimetime') {
-                                  slabvart.stars.push({
+                                  goobert.stars.push({
                                       type: 'item', itemName: starCell.itemName,
                                       cooldown: starCell.cooldown, acceleration: starCell.acceleration,
                                       isSlimeTime: starCell.type === 'slimetime'
                                   });
-                              } else if (starCell.type === 'slabvart') {
-                                  slabvart.stars.push({ type: 'slabvart', targetId: starCell.id });
+                              } else if (starCell.type === 'goobert') {
+                                  goobert.stars.push({ type: 'goobert', targetId: starCell.id });
                               }
                           }
                       }
@@ -802,22 +802,22 @@
               }
 
               // Build system of equations
-              const idToIndex = new Map(slabvarts.map((s, i) => [s.id, i]));
-              const n = slabvarts.length;
+              const idToIndex = new Map(gooberts.map((s, i) => [s.id, i]));
+              const n = gooberts.length;
               const A = Array(n).fill(0).map(() => Array(n).fill(0));
               const b = Array(n).fill(0);
 
-              slabvarts.forEach((slabvart, i) => {
-                  const N = slabvart.requiredCount;
+              gooberts.forEach((goobert, i) => {
+                  const N = goobert.requiredCount;
                   A[i][i] = 1;
                   let constantTerm = slimeFreq;
 
-                  slabvart.stars.forEach(star => {
+                  goobert.stars.forEach(star => {
                       if (star.type === 'item') {
                           const freq = (1 / star.cooldown) * (1 + (star.acceleration || 0) / 100);
                           constantTerm += freq;
                           if (star.isSlimeTime) constantTerm += slimeFreq;
-                      } else if (star.type === 'slabvart') {
+                      } else if (star.type === 'goobert') {
                           const j = idToIndex.get(star.targetId);
                           if (j !== undefined) A[i][j] = -1 / N;
                       }
@@ -828,7 +828,7 @@
 
               // 連立方程式の表示
               let equationText = '';
-              slabvarts.forEach((s, i) => {
+              gooberts.forEach((s, i) => {
                   const name = `f${i}`;
                   const slabName = s.subtype === 'large' ? 'スラバート' : s.subtype === 'king' ? 'キングスラバート' : 'チビバート';
                   equationText += `${name} (${slabName}(${s.row},${s.col})の発動頻度):\n`;
@@ -838,7 +838,7 @@
 
                   // 定数項
                   let constantTerm = 0;
-                  slabvarts.forEach((_, j) => {
+                  gooberts.forEach((_, j) => {
                       if (A[i][j] !== 0 && i !== j) {
                           const coef = -A[i][j] * s.requiredCount;
                           terms.push(`${coef.toFixed(3)} × f${j}`);
@@ -916,7 +916,7 @@
 
               // 結果テーブルを生成
               const resultsBody = resultPanel.querySelector('.results-body');
-              slabvarts.forEach((s, i) => {
+              gooberts.forEach((s, i) => {
                   const freq = frequencies[i];
                   const row = resultsBody.insertRow();
                   row.className = 'border-b hover:bg-slate-50';
